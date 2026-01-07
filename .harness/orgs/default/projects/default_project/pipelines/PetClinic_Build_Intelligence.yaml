@@ -7,7 +7,7 @@ pipeline:
   properties:
     ci:
       codebase:
-        connectorRef: YashwanthChowdary05
+        connectorRef: account.YashwanthChowdary05
         build: <+input>
   stages:
     - stage:
@@ -40,7 +40,6 @@ pipeline:
                     image: eclipse-temurin:17-jdk-jammy
                     shell: Sh
                     command: |
-                      # No install needed! Java is already here.
                       java -version
                       chmod +x gradlew
                       ./gradlew build --build-cache -x checkstyleNohttp
