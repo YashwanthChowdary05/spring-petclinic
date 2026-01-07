@@ -1,0 +1,46 @@
+pipeline:
+  name: Pet Clinic Build Intelligence
+  identifier: Pet_Clinic_Build_Intelligence
+  projectIdentifier: default_project
+  orgIdentifier: default
+  tags: {}
+  properties:
+    ci:
+      codebase:
+        connectorRef: YashwanthChowdary05
+        build: <+input>
+  stages:
+    - stage:
+        name: Build Intelligence
+        identifier: Build_Intelligence
+        description: Building PetClinic with Gradle and BI Caching
+        type: CI
+        spec:
+          cloneCodebase: true
+          caching:
+            enabled: true
+            override: true
+          buildIntelligence:
+            enabled: true
+          platform:
+            os: Linux
+            arch: Amd64
+          runtime:
+            type: Cloud
+            spec:
+              imageSpec:
+                imageName: ubuntu-latest
+          execution:
+            steps:
+              - step:
+                  type: Run
+                  name: Build with Gradle
+                  identifier: Build_Gradle
+                  spec:
+                    image: eclipse-temurin:17-jdk-jammy
+                    shell: Sh
+                    command: |
+                      # No install needed! Java is already here.
+                      java -version
+                      chmod +x gradlew
+                      ./gradlew build --build-cache -x checkstyleNohttp
