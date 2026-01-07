@@ -7,7 +7,7 @@ pipeline:
   properties:
     ci:
       codebase:
-        connectorRef: account.YashwanthChowdary05
+        connectorRef: org.YashwanthChowdary05
         build: <+input>
   stages:
     - stage:
