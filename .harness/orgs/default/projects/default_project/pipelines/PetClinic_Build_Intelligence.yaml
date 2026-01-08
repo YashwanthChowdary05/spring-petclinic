@@ -1,22 +1,23 @@
 pipeline:
-  name: Pet Clinic Build Intelligence
-  identifier: Pet_Clinic_Build_Intelligence
-  projectIdentifier: default_project
+  name: PetClinic Build Intelligence - V3
+  identifier: PetClinic_Build_Intelligence_V3
+  projectIdentifier: BY_Project
   orgIdentifier: default
   tags: {}
   properties:
     ci:
       codebase:
-        connectorRef: org.YashwanthChowdary05
+        connectorRef: YashwanthChowdary05
         build: <+input>
   stages:
     - stage:
-        name: Build Intelligence
-        identifier: Build_Intelligence
-        description: Building PetClinic with Gradle and BI Caching
+        name: Build Stage
+        identifier: Build_Stage
+        description: "Builds Spring PetClinic with Gradle and TI Caching"
         type: CI
         spec:
           cloneCodebase: true
+          # Goal 2: Enable Build Intelligence
           caching:
             enabled: true
             override: true
@@ -27,19 +28,26 @@ pipeline:
             arch: Amd64
           runtime:
             type: Cloud
-            spec:
-              imageSpec:
-                imageName: ubuntu-latest
+            spec: {}
           execution:
             steps:
               - step:
                   type: Run
                   name: Build with Gradle
-                  identifier: Build_Gradle
+                  identifier: Build_with_Gradle
                   spec:
-                    image: eclipse-temurin:17-jdk-jammy
+                    connectorRef: <+input>
+                    # Goal 1: Evaluate Build Tool Support (Gradle)
+                    image: gradle:8.4-jdk17
                     shell: Sh
-                    command: |
-                      java -version
-                      chmod +x gradlew
-                      ./gradlew build --build-cache -x checkstyleNohttp
+                    command: |-
+                      # 'build' compiles code and runs tests
+                      # --no-daemon is best practice for CI to save memory
+                      ./gradlew build --no-daemon
+                    
+                    # Optional: Visualizes test results in Harness
+                    reports:
+                      type: JUnit
+                      spec:
+                        paths:
+                          - "**/build/test-results/**/*.xml"
