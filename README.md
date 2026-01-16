@@ -174,4 +174,5 @@ For additional details, please refer to the blog post [Hello DCO, Goodbye CLA: S
 The Spring PetClinic sample application is released under version 2.0 of the [Apache License](https://www.apache.org/licenses/LICENSE-2.0).
 #   s p r i n g - p e t c l i n i c  
  #   s p r i n g - p e t c l i n i c  
+ #   P e t C l i n i c  
  
