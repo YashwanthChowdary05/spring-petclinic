@@ -1,0 +1,24 @@
+
+Report Summary
+
+┌─────────┬──────┬─────────────────┬─────────┐
+│ Target  │ Type │ Vulnerabilities │ Secrets │
+├─────────┼──────┼─────────────────┼─────────┤
+│ pom.xml │ pom  │        1        │    -    │
+└─────────┴──────┴─────────────────┴─────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
+
+pom.xml (pom)
+=============
+Total: 1 (UNKNOWN: 0, LOW: 1, MEDIUM: 0, HIGH: 0, CRITICAL: 0)
+
+┌─────────────────────────────┬───────────────┬──────────┬────────┬───────────────────┬───────────────┬──────────────────────────────────────────────────────────────┐
+│           Library           │ Vulnerability │ Severity │ Status │ Installed Version │ Fixed Version │                            Title                             │
+├─────────────────────────────┼───────────────┼──────────┼────────┼───────────────────┼───────────────┼──────────────────────────────────────────────────────────────┤
+│ ch.qos.logback:logback-core │ CVE-2026-1225 │ LOW      │ fixed  │ 1.5.22            │ 1.5.25        │ ch.qos.logback/logback-core: Malicious logback.xml           │
+│                             │               │          │        │                   │               │ configuration file allows instantiation of arbitrary classes │
+│                             │               │          │        │                   │               │ https://avd.aquasec.com/nvd/cve-2026-1225                    │
+└─────────────────────────────┴───────────────┴──────────┴────────┴───────────────────┴───────────────┴──────────────────────────────────────────────────────────────┘
