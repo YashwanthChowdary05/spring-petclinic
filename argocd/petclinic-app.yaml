@@ -1,0 +1,37 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: petclinic
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+
+  source:
+    repoURL: https://github.com/YashwanthChowdary05/spring-petclinic.git
+    targetRevision: main
+    path: k8s
+    directory:
+      recurse: false
+      # Deploy only the app + db from k8s/ root; monitoring is a separate App.
+      include: '{petclinic.yml,db.yml}'
+
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: petclinic
+
+  syncPolicy:
+    automated:
+      prune: true        # remove resources deleted from Git
+      selfHeal: true     # revert manual drift back to Git state
+      allowEmpty: false
+    syncOptions:
+      - CreateNamespace=true
+      - PrunePropagationPolicy=foreground
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

@@ -1,0 +1,68 @@
+# Values for kube-prometheus-stack (Prometheus + Grafana + Alertmanager).
+# Tuned for a small demo / Kind cluster.
+
+fullnameOverride: kps
+
+prometheus:
+  prometheusSpec:
+    retention: 7d
+    # Discover ServiceMonitors/PodMonitors/Rules in ALL namespaces regardless
+    # of the chart's release label, so our petclinic ServiceMonitor is found.
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        memory: 1Gi
+    # emptyDir by default so it runs anywhere. For a real cluster, switch to a
+    # PVC via storageSpec.volumeClaimTemplate.
+
+grafana:
+  adminPassword: admin        # CHANGE ME before real use (or wire to a Secret)
+  service:
+    type: NodePort
+  defaultDashboardsEnabled: true   # cluster/node/pod dashboards included
+  dashboardProviders:
+    dashboardproviders.yaml:
+      apiVersion: 1
+      providers:
+        - name: default
+          orgId: 1
+          folder: ''
+          type: file
+          disableDeletion: false
+          editable: true
+          options:
+            path: /var/lib/grafana/dashboards/default
+  dashboards:
+    default:
+      jvm-micrometer:          # JVM metrics from Micrometer/Actuator
+        gnetId: 4701
+        revision: 10
+        datasource: Prometheus
+      spring-boot:             # Spring Boot statistics
+        gnetId: 6756
+        revision: 1
+        datasource: Prometheus
+
+alertmanager:
+  alertmanagerSpec:
+    resources:
+      requests:
+        cpu: 50m
+        memory: 128Mi
+
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 50m
+      memory: 128Mi
+
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 25m
+      memory: 64Mi
