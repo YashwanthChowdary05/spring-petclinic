@@ -1,0 +1,19 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: petclinic
+  namespace: monitoring
+  labels:
+    release: kps             # matched by kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+      - petclinic            # where the app runs
+  selector:
+    matchLabels:
+      app: petclinic         # matches the petclinic Service
+  endpoints:
+    - port: http             # named port on the Service
+      path: /actuator/prometheus
+      interval: 15s
+      scrapeTimeout: 10s

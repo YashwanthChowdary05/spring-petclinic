@@ -1,0 +1,129 @@
+name: CI/CD Pipeline
+
+# Pipeline:
+#   1. build + test the Spring Boot app
+#   2. build a container image and push it to GitHub Container Registry (GHCR)
+#   3. write the new image tag into k8s/petclinic.yml and commit it back,
+#      so Argo CD (GitOps) deploys the change to the cluster.
+#
+# GHCR is used as the registry because it needs no extra secrets — the
+# built-in GITHUB_TOKEN can push to ghcr.io/<owner>/<repo>.
+
+on:
+  push:
+    branches: [ main ]
+    paths-ignore:
+      - 'k8s/**'          # prevent a loop: the tag-bump commit edits k8s/
+      - '**/*.md'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch: {}
+
+env:
+  REGISTRY: ghcr.io
+  # -> ghcr.io/yashwanthchowdary05/spring-petclinic
+  IMAGE_NAME: ${{ github.repository }}
+
+permissions:
+  contents: write          # push the tag-bump commit
+  packages: write          # push the image to GHCR
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # 1) Build & test
+  # ---------------------------------------------------------------------------
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: maven
+
+      - name: Build and run tests
+        run: ./mvnw -B verify
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          if-no-files-found: ignore
+
+  # ---------------------------------------------------------------------------
+  # 2) Build & push image (only on push / manual run, not PRs)
+  # ---------------------------------------------------------------------------
+  docker-build-push:
+    needs: build-and-test
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      image_tag: ${{ steps.meta.outputs.short_sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compute image tag
+        id: meta
+        run: echo "short_sha=$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Lowercase image name
+        id: img
+        run: echo "name=${IMAGE_NAME,,}" >> "$GITHUB_OUTPUT"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ steps.img.outputs.name }}:latest
+            ${{ env.REGISTRY }}/${{ steps.img.outputs.name }}:${{ steps.meta.outputs.short_sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ---------------------------------------------------------------------------
+  # 3) Update GitOps manifest -> Argo CD syncs it
+  # ---------------------------------------------------------------------------
+  update-manifest:
+    needs: docker-build-push
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bump image tag in k8s/petclinic.yml
+        env:
+          TAG: ${{ needs.docker-build-push.outputs.image_tag }}
+        run: |
+          IMG="${REGISTRY}/${IMAGE_NAME,,}"
+          sed -i -E "s#image: ${IMG}:.*#image: ${IMG}:${TAG}#g" k8s/petclinic.yml
+          echo "----- updated image line -----"
+          grep -n "image: ${IMG}" k8s/petclinic.yml || true
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if ! git diff --quiet -- k8s/petclinic.yml; then
+            git add k8s/petclinic.yml
+            git commit -m "ci: deploy ${{ needs.docker-build-push.outputs.image_tag }} [skip ci]"
+            git push
+          else
+            echo "No manifest change to commit."
+          fi
